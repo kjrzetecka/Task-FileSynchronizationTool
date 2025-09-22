@@ -226,6 +226,8 @@ namespace TestTask
             string AdjustedReplicaFolderPath = SourceFilePath.Replace(Source, Replica);
             if (!Directory.Exists(AdjustedReplicaFolderPath))
             {
+              Console.WriteLine(AdjustedReplicaFolderPath.Replace(Replica, "") + " was missing. Added from the source version.");
+              Logger.Instance.Log(AdjustedReplicaFolderPath.Replace(Replica, "") + " was missing. Added from the source version.");
               Directory.CreateDirectory(AdjustedReplicaFolderPath);
             }
             //Synch the insides of this folder
@@ -239,7 +241,6 @@ namespace TestTask
             string ReplicaFilePath = SourceFilePath.Replace(Source, Replica);
 
             Console.WriteLine("Checking: " + SourceFileName);
-            Logger.Instance.Log("Checking: " + SourceFileName);
 
             //If the contents does not match or does not exist
             //correct the file in replica. Contents are checked
