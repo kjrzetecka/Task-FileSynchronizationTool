@@ -3,8 +3,10 @@ Program that synchronizes two folders: source and replica. This will happen in i
 You can add arguments to the program as follows:
 
 program.exe "path_to_source" "path_of_replica"
+
 or
 program.exe "path_to_source" "path_of_replica" interval_in_miliseconds
+
 or
 program.exe "path_to_source" "path_of_replica" interval_in_miliseconds "path_to_save_logs"
 
