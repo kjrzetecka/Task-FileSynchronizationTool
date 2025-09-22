@@ -7,11 +7,12 @@ namespace TestTask
   {
     //Time between synchronizations in miliseconds
     //60000 ms = 6 min
-    private const int TimePeriod = 60000;
+    private static int TimePeriod = 60000;
 
     //Paths for Source, Replica
     private static string Source = "";
     private static string Replica = "";
+    private static string LogFile = "";
 
     //Files that were not copied successfully;
     private static List<string> FailedFiles = new List<string>();
@@ -69,10 +70,92 @@ namespace TestTask
       {
         if (Directory.Exists(args[0]))
           Source = args[0];
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for source\n");
+          Environment.Exit(0);
+        }
         if (Directory.Exists(args[1]))
           Replica = args[1];
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for replica\n");
+          Environment.Exit(0);
+        }
       }
+      else if (args.Length == 3)
+      {
+        if (Directory.Exists(args[0]))
+          Source = args[0];
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for source\n");
+          Environment.Exit(0);
+        }
+        if (Directory.Exists(args[1]))
+          Replica = args[1];
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for replica\n");
+          Environment.Exit(0);
+        }
+        try
+        {
+          TimePeriod = Int32.Parse(args[2]);
+          if (TimePeriod < 1000)
+          {
+            Console.WriteLine("\nError: Internal value is too low\n");
+            Environment.Exit(0);
+          }
+        }
+        catch
+        {
+          Console.WriteLine("\nError: Interval value is invalid\n");
+          Environment.Exit(0);
+        }
+      }
+      else if (args.Length == 4)
+      {
+        if (Directory.Exists(args[0]))
+          Source = args[0];
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for source\n");
+          Environment.Exit(0);
+        }
+        if (Directory.Exists(args[1]))
+          Replica = args[1];
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for replica\n");
+          Environment.Exit(0);
+        }
+        if (Directory.Exists(args[3]))
+        {
+          LogFile = args[3];
+        }
+        else
+        {
+          Console.WriteLine("\nError: Invalid path for logging\n");
+          Environment.Exit(0);
+        }
 
+        try
+        {
+          TimePeriod = Int32.Parse(args[2]);
+          if (TimePeriod < 1000)
+          {
+            Console.WriteLine("\nError: Internal value is too low\n");
+            Environment.Exit(0);
+          }
+        }
+        catch
+        {
+          Console.WriteLine("\nError: Interval value is invalid\n");
+          Environment.Exit(0);
+        }
+
+      }
       //Case with invalid number of arguments.
       else
       {
@@ -94,11 +177,11 @@ namespace TestTask
         Logger.Instance.Log(Environment.NewLine + "Checkup complete at " + DateTime.Now.ToString());
         Logger.Instance.Log("Next checkup at " + DateTime.Now.AddMilliseconds(60000).ToString() + Environment.NewLine);
 
-        if(FailedFiles.Count > 0)
+        if (FailedFiles.Count > 0)
         {
           Console.ForegroundColor = ConsoleColor.Red;
           Console.WriteLine("Failed to update:");
-          foreach(var file in FailedFiles)
+          foreach (var file in FailedFiles)
           {
             Console.WriteLine(file);
           }
@@ -117,7 +200,7 @@ namespace TestTask
         }
 
 
-        lock (_lock) 
+        lock (_lock)
         {
           Monitor.Wait(_lock, TimePeriod);
         }
@@ -126,7 +209,8 @@ namespace TestTask
       Environment.Exit(0);
     }
 
-
+    //Function that will create missing files, folders
+    //and update files that differs from source
     static void Synchronisation(string[] sourceFileNames, ref Span<byte> hash1, ref Span<byte> hash2)
     {
       //Sychronizing the existing files from source folder
@@ -172,7 +256,7 @@ namespace TestTask
                 if (ReplaceFile(SourceFilePath, ReplicaFilePath))
                 {
                   Console.WriteLine(SourceFileName + " was outdated. Updated to the source version.");
-                  Logger.Instance.Log(SourceFileName + " was outdated. Updated to the source version.");
+                  Logger.Instance.Log(SourceFilePath + " was outdated. Updated to the source version.");
                   break;
                 }
               }
@@ -184,7 +268,7 @@ namespace TestTask
                 if (ReplaceFile(SourceFilePath, ReplicaFilePath))
                 {
                   Console.WriteLine(SourceFileName + " was outdated. Updated to the source version.");
-                  Logger.Instance.Log(SourceFileName + " was outdated. Updated to the source version.");
+                  Logger.Instance.Log(SourceFilePath + " was outdated. Updated to the source version.");
                 }
               }
               stream1.Close();
@@ -195,7 +279,7 @@ namespace TestTask
               if (ReplaceFile(SourceFilePath, ReplicaFilePath))
               {
                 Console.WriteLine(SourceFileName + " was missing. Added to the destination.");
-                Logger.Instance.Log(SourceFileName + " was missing. Added to the destination.");
+                Logger.Instance.Log(SourceFilePath + " was missing. Added to the destination.");
               }
             }
 
@@ -209,6 +293,8 @@ namespace TestTask
       }
     }
 
+    //Function that will check for any unneccessary files and
+    //folders in the replica folder
     static void RemoveUnnecessary(string[] replicaFileNames)
     {
       if (replicaFileNames.Length > 0)
@@ -225,7 +311,7 @@ namespace TestTask
             {
               Directory.Delete(ReplicaFilePath, true);
               Console.WriteLine("Removed unnecessary folder: " + ReplicaFilePath.Replace(Replica, ""));
-              Logger.Instance.Log("Removed unnecessary folder: " + ReplicaFilePath.Replace(Replica, ""));
+              Logger.Instance.Log("Removed unnecessary folder: " + ReplicaFilePath);
             }
             //search deeper
             else
@@ -233,14 +319,14 @@ namespace TestTask
           }
           //Removing unnecesary files
           else
-          {   
+          {
             if (!File.Exists(Source + AdjustedReplicaFilePath))
             {
               try
               {
                 File.Delete(ReplicaFilePath);
-                Console.WriteLine("Removed unnecessary file: " + ReplicaFilePath.Replace(Replica, ""));
-                Logger.Instance.Log("Removed unnecessary file: " + ReplicaFilePath.Replace(Replica, ""));
+                Console.WriteLine("Removed unnecessary file: " + Path.GetFileName(ReplicaFilePath).Replace(Replica, ""));
+                Logger.Instance.Log("Removed unnecessary file: " + ReplicaFilePath);
               }
               catch (Exception)
               {
@@ -254,6 +340,7 @@ namespace TestTask
       }
     }
 
+    //function that replaces old file with new from the source
     static bool ReplaceFile(string SourceFilePath, string ReplicaFilePath)
     {
       try
@@ -261,7 +348,7 @@ namespace TestTask
         File.Copy(SourceFilePath, ReplicaFilePath, true);
         return true;
       }
-      catch(Exception ex)
+      catch (Exception ex)
       {
         FailedFiles.Add(ReplicaFilePath);
         Console.WriteLine(ex);
